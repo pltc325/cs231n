@@ -34,14 +34,16 @@ def svm_loss_naive(W, X, y, reg):
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
         loss += margin
-
+        dW[:,j] += X[i,:]
+        dW[:,y[i]] -= X[i,:]
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
 
   # Add regularization to the loss.
   loss += 0.5 * reg * np.sum(W * W)
-
+  dW /= num_train
+  dW += reg * W
   #############################################################################
   # TODO:                                                                     #
   # Compute the gradient of the loss function and store it dW.                #
@@ -67,9 +69,43 @@ def svm_loss_vectorized(W, X, y, reg):
   #############################################################################
   # TODO:                                                                     #
   # Implement a vectorized version of the structured SVM loss, storing the    #
-  # result in loss.                                                           #
+  # result in loss.                      `                                     #
   #############################################################################
-  pass
+  loss = 0.0
+  num_classes = W.shape[1]
+  num_train = X.shape[0]
+  scores = np.dot(X, W)
+  correct_class_scores = np.choose(y, scores.T)
+  x1 = scores - correct_class_scores.reshape((num_train,1)) + 1
+  x2 = x1[x1>0]
+  x3 = np.sum(x2)
+  loss = x3
+  #print(x1)
+  x1[x1>0]=1
+  x1[x1<=0]=0
+  #print(x1)
+  mask1 = x1
+  dw1 = np.dot(X.T,mask1)
+  #print("dw1:",dw1)
+  count_vec = np.sum(mask1,axis=1)
+  #print(count_vec)
+  mask2 = np.zeros(mask1.shape)
+  mask2[np.arange(mask1.shape[0]),y] = 1
+  #print("mask2",mask2)
+  mask2 = mask2 * count_vec.reshape((num_train,1))
+  #print("mask2:",mask2)
+  #print("-mask2:",-mask2)
+  dw2 = np.dot(X.T, -mask2)
+  dW = dw1 + dw2
+  #print("dw",dw1+dw2)
+  dW/=num_train
+  dW += reg * W
+  # Right now the loss is a sum over all training examples, but we want it
+  # to be an average instead so we divide by num_train.
+  loss /= num_train
+
+  # Add regularization to the loss.
+  loss += 0.5 * reg * np.sum(W * W) - 1
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -84,7 +120,6 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
